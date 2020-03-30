@@ -1,5 +1,7 @@
 # Gear set calculator
 
+**Still Under Construction!**
+
 Use this to figure out which of your hundreds of thousands of possible gear
 combinations is the best for any given constraints. The current plan is to
 implement set bonus calculations for raw addition of stats (+2 hit, for
@@ -10,12 +12,15 @@ or effects (e.g. Priest T2 8-Piece).
 ## DB Setup
 
 ### Slot
+```
 CREATE TABLE Slot (
 Slot Char(8) PRIMARY KEY NOT NULL,
 Seq INTEGER
 );
+```
 
 ### Item
+```
 CREATE TABLE Item (
 Id INTEGER PRIMARY KEY AUTOINCREMENT,
 Name VARCHAR(64) NOT NULL,
@@ -31,8 +36,10 @@ ATP INTEGER NOT NULL DEFAULT 0,
 DEF INTEGER NOT NULL DEFAULT 0,
 FRE INTEGER NOT NULL DEFAULT 0
 , SetBonus NOT NULL DEFAULT 0 REFERENCES SetBonus(Id));
+```
 
 ### SetBonus
+```
 CREATE TABLE SetBonus (
 SetId INTEGER NOT NULL,
 PieceCount INTEGER NOT NULL,
@@ -48,6 +55,7 @@ DEF INTEGER DEFAULT 0,
 FRE INTEGER DEFAULT 0,
 PRIMARY KEY (SetId, PieceCount)
 );
+```
 
 ## Gear Dumping
 Dump gear into the database use gear_dumper.php. gear.csv should look like
