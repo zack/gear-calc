@@ -5,7 +5,7 @@
 Use this to figure out which of your hundreds of thousands of possible gear
 combinations is the best for any given constraints. The current plan is to
 implement set bonus calculations for raw addition of stats (+2 hit, for
-instance). Anything that effectively reduces to one of the follow stats can
+instance). Anything that effectively reduces to one of the base stats can
 also be accomplished. There are no plans to implement more complex set bonuses
 or effects (e.g. Priest T2 8-Piece).
 
