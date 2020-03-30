@@ -1,0 +1,5 @@
+{
+    "require": {
+        "bentools/cartesian-product": "^1.3"
+    }
+}
