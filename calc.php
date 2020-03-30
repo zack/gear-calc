@@ -43,6 +43,7 @@ const ATP = 'ATP';
 const STR = 'STR';
 const HIT = 'HIT';
 const CRI = 'CRI';
+const HST = 'HST';
 
 const STATS = [
     ARM,
@@ -54,6 +55,7 @@ const STATS = [
     STR,
     HIT,
     CRI,
+    HST,
 ];
 
 const COUNT_BY_SLOT = [
@@ -73,19 +75,20 @@ const COUNT_BY_SLOT = [
 ];
 
 const STAT_WEIGHT_TANK = [
-    ARM => 0.79727,
-    STA => 6.242,
-    AGI => 2.29,
-    DEF => 4.7,
-    DGE => 39.5,
+    ARM => 0.23,
+    STA => 1.00,
+    AGI => 0.92,
+    DEF => 2.00,
+    DGE => 16.67,
 ];
 
 const STAT_WEIGHT_THREAT = [
-    ATP => 1,
-    STR => 2.02,
-    AGI => 1.485,
-    HIT => 30.3,
-    CRI => 29.7,
+    ATP => 0.5,
+    STR => 1,
+    AGI => 0.45,
+    HIT => 6.69,
+    CRI => 8.97,
+    HST => 9.01,
 ];
 
 $db = new SQLite3('db.sqlite3');
@@ -103,6 +106,7 @@ class Item {
     private $STR;
     private $HIT;
     private $CRI;
+    private $HST;
     private $SetBonus;
 
     function __construct($args) {
