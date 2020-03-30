@@ -9,6 +9,7 @@ $COLUMNS = [
     "STR",
     "HIT",
     "CRI",
+    "HST",
     "DGE",
     "ATP",
     "DEF",

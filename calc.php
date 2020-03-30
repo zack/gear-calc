@@ -18,7 +18,7 @@ const FINGER = 'FINGER';
 const TRINKET = 'TRINKET';
 const WEAPON = 'WEAPON';
 
-const SLOTS = [
+const TYPES = [
     HEAD,
     NECK,
     SHOULDER,
@@ -31,6 +31,29 @@ const SLOTS = [
     FEET,
     FINGER,
     TRINKET,
+    WEAPON,
+];
+
+const FINGER1 = 'FINGER1';
+const FINGER2 = 'FINGER2';
+const TRINKET1 = 'TRINKET1';
+const TRINKET2 = 'TRINKET2';
+
+const SLOTS = [
+    HEAD,
+    NECK,
+    SHOULDER,
+    BACK,
+    CHEST,
+    WRIST,
+    HANDS,
+    WAIST,
+    LEGS,
+    FEET,
+    FINGER1,
+    FINGER2,
+    TRINKET1,
+    TRINKET2,
     WEAPON,
 ];
 
@@ -115,12 +138,25 @@ class Item {
         }
     }
 
+    public static function getItemById($db, $id) {
+        $statement = $db->prepare('SELECT * FROM Item WHERE Id = :id;');
+        $statement->bindValue('id', $id);
+        $result = $statement->execute();
+        while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
+            return new Item($row);
+        }
+    }
+
     public function getName() {
         return $this->Name;
     }
 
     public function getSlot() {
         return $this->Slot;
+    }
+
+    public function getId() {
+        return $this->Id;
     }
 
     public function getStat($stat) {
@@ -144,26 +180,57 @@ class GearSet {
     private $WAIST;
     private $LEGS;
     private $FEET;
-    private $FINGER;
-    private $TRINKET;
+    private $FINGER1;
+    private $FINGER2;
+    private $TRINKET1;
+    private $TRINKET2;
     private $WEAPON;
 
     private $set_stats;
 
-    function __construct($args) {
-        foreach($args as $key => $val) {
-            $this->$key = $val;
+    function __construct($items) {
+        foreach($items as $item) {
+            $slot = $item->getSlot();
+
+            if ($slot === FINGER && !isset($this->FINGER1)) {
+                print("Setting FINGER1 to {$item->getName()}\n");
+                $this->FINGER1 = $item;
+            } else if ($slot === FINGER) {
+                print("Setting FINGER2 to {$item->getName()}\n");
+                $this->FINGER2 = $item;
+            } else if ($slot === TRINKET && !isset($this->TRINKET1)) {
+                print("Setting TRINKET1 to {$item->getName()}\n");
+                $this->TRINKET1 = $item;
+            } else if ($slot === TRINKET) {
+                print("Setting TRINKET2 to {$item->getName()}\n");
+                $this->TRINKET2 = $item;
+            } else {
+                print("Setting {$slot} to {$item->getName()}\n");
+                $this->$slot = $item;
+            }
         }
 
         $this->set_stats = array_fill_keys(STATS, 0);
-        $this->generateStats();
+        $this->generateStats($this->set_stats);
     }
 
-    private function generateStats() {
+    public static function parseSetString($db, $set_string) {
+        $items = [];
+        $id_arr = explode(",", $set_string);
+
+        foreach($id_arr as $id) {
+            $item = Item::getItemById($db, $id);
+            $items[$item->getSlot()] = $item;
+        }
+
+        return new GearSet($items);
+    }
+
+    private function generateStats(&$stats_arr) {
         foreach(SLOTS as $slot) {
             $item = $this->$slot;
             foreach(STATS as $stat) {
-                $this->set_stats[$stat] += $item->getStat($stat);
+                $stats_arr[$stat] += $item->getStat($stat);
             }
         }
     }
@@ -180,20 +247,32 @@ class GearSet {
             print("{$stat} : {$this->set_stats[$stat]}\n");
         }
     }
-}
 
-function getAllGear($db) {
-    $result = [];
-    foreach(COUNT_BY_SLOT as $slot => $count) {
-        $result[$slot] = getGearForSlot($db, $slot);
+    public function getSetString() {
+        $ids = [];
+
+        foreach(SLOTS as $slot) {
+            $item = $this->$slot;
+            $ids[] = $item->getId();
+        }
+
+        return join($ids, ",");
     }
-    return $result;
 }
 
-function getGearForSlot($db, $slot) {
+function getAllItems($db) {
+    $items = [];
+    foreach(TYPES as $type) {
+        $items[$type] = getItemsByType($db, $type);
+    }
+    return $items;
+}
+
+function getItemsByType($db, $slot) {
     $statement = $db->prepare('SELECT * FROM Item WHERE Slot = :slot;');
     $statement->bindValue('slot', $slot);
     $result = $statement->execute();
+
     while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
         $arr[] = new Item($row);
     }
@@ -201,8 +280,18 @@ function getGearForSlot($db, $slot) {
     return $arr;
 }
 
-function getGearCombinationsForSlot($gear) {
-    $slot = $gear[0]["Slot"];
+function getAllGearCombinationsByType($gear) {
+    $items = [];
+
+    foreach(TYPES as $type) {
+        $items[$type] = getGearCombinationsForType($gear[$type]);
+    }
+
+    return $items;
+}
+
+function getGearCombinationsForType($gear) {
+    $slot = $gear[0]->getSlot();
     $item_count = COUNT_BY_SLOT[$slot];
     $result = [];
 
@@ -228,8 +317,18 @@ function rightPad($len, $string) {
     return "{$string}{$pad}";
 }
 
-$all_gear = getAllGear($db);
-$all_gear_combinations = cartesian_product($all_gear)->asArray();
-$a_gearset = new GearSet($all_gear_combinations[0]);
+function flatten(array $array) {
+    $return = array();
+    array_walk_recursive($array, function($a) use (&$return) { $return[] = $a; });
+    return $return;
+}
+
+$all_gear = getAllItems($db);
+$all_type_combinations = getAllGearCombinationsByType($all_gear);
+$all_gear_combinations = cartesian_product($all_type_combinations)->asArray();
+$a_gearset = new GearSet(flatten($all_gear_combinations[0]));
 $a_gearset->printSet();
 $a_gearset->printStats();
+print($a_gearset->getSetString());
+$b_gearset = GearSet::parseSetString($db, $a_gearset->getSetString());
+$b_gearset->printStats();
