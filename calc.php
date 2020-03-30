@@ -81,6 +81,24 @@ const STATS = [
     HST,
 ];
 
+const TNK = 'TNK';
+const THR = 'THR';
+
+const SET_STATS = [
+    ARM,
+    STA,
+    AGI,
+    DEF,
+    DGE,
+    ATP,
+    STR,
+    HIT,
+    CRI,
+    HST,
+    TNK,
+    THR,
+];
+
 const COUNT_BY_SLOT = [
     HEAD => 1,
     NECK => 1,
@@ -114,7 +132,38 @@ const STAT_WEIGHT_THREAT = [
     HST => 9.01,
 ];
 
-$db = new SQLite3('db.sqlite3');
+
+class DB {
+    private $db;
+
+    function __construct($filename) {
+        $this->db = new SQLite3($filename);
+    }
+
+    public function getItemsOfType($type) {
+        $statement = $this->db->prepare('SELECT * FROM Item WHERE Slot = :slot;');
+        $statement->bindValue('slot', $type);
+        $result = $statement->execute();
+
+        $arr = [];
+
+        while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
+            $arr[] = new Item($row);
+        }
+
+        return $arr;
+    }
+
+    public function getItemById($id) {
+        $statement = $this->db->prepare('SELECT * FROM Item WHERE Id = :id;');
+        $statement->bindValue('id', $id);
+        $result = $statement->execute();
+
+        while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
+            return new Item($row);
+        }
+    }
+}
 
 class Item {
 
@@ -135,15 +184,6 @@ class Item {
     function __construct($args) {
         foreach($args as $key => $val) {
             $this->$key = $val;
-        }
-    }
-
-    public static function getItemById($db, $id) {
-        $statement = $db->prepare('SELECT * FROM Item WHERE Id = :id;');
-        $statement->bindValue('id', $id);
-        $result = $statement->execute();
-        while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
-            return new Item($row);
         }
     }
 
@@ -189,6 +229,8 @@ class GearSet {
     private $set_stats;
 
     function __construct($items) {
+        $count = count($items);
+        print("Constructing new set out of {$count} items.\n");
         foreach($items as $item) {
             $slot = $item->getSlot();
 
@@ -210,29 +252,44 @@ class GearSet {
             }
         }
 
-        $this->set_stats = array_fill_keys(STATS, 0);
-        $this->generateStats($this->set_stats);
+        $this->set_stats = $this->generateStats($this->set_stats);
     }
 
     public static function parseSetString($db, $set_string) {
         $items = [];
-        $id_arr = explode(",", $set_string);
+        $ids = explode(",", $set_string);
 
-        foreach($id_arr as $id) {
-            $item = Item::getItemById($db, $id);
-            $items[$item->getSlot()] = $item;
-        }
+        foreach($ids as $id) {
+            $items[] = $db->getItemById($id);
+        };
 
         return new GearSet($items);
     }
 
-    private function generateStats(&$stats_arr) {
-        foreach(SLOTS as $slot) {
+    private function generateStats() {
+        $stats = array_fill_keys(STATS, 0);
+
+        foreach (SLOTS as $slot) {
             $item = $this->$slot;
             foreach(STATS as $stat) {
-                $stats_arr[$stat] += $item->getStat($stat);
+                $stats[$stat] += $item->getStat($stat);
             }
         }
+
+        $stats[TNK] = $this->calculateSecondaryStats(STAT_WEIGHT_TANK, $stats);
+        $stats[THR] = $this->calculateSecondaryStats(STAT_WEIGHT_THREAT, $stats);
+
+        return $stats;
+    }
+
+    private function calculateSecondaryStats($stat_weights, $stats_arr) {
+        $value = 0;
+
+        foreach($stat_weights as $stat => $value) {
+            $value += $stats_arr[$stat];
+        }
+
+        return $value;
     }
 
     function printSet() {
@@ -243,7 +300,7 @@ class GearSet {
     }
 
     public function printStats() {
-        foreach(STATS as $stat) {
+        foreach(SET_STATS as $stat) {
             print("{$stat} : {$this->set_stats[$stat]}\n");
         }
     }
@@ -263,21 +320,9 @@ class GearSet {
 function getAllItems($db) {
     $items = [];
     foreach(TYPES as $type) {
-        $items[$type] = getItemsByType($db, $type);
+        $items[$type] = $db->getItemsOfType($type);
     }
     return $items;
-}
-
-function getItemsByType($db, $slot) {
-    $statement = $db->prepare('SELECT * FROM Item WHERE Slot = :slot;');
-    $statement->bindValue('slot', $slot);
-    $result = $statement->execute();
-
-    while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
-        $arr[] = new Item($row);
-    }
-
-    return $arr;
 }
 
 function getAllGearCombinationsByType($gear) {
@@ -323,12 +368,12 @@ function flatten(array $array) {
     return $return;
 }
 
+$db = new DB('db.sqlite3');
 $all_gear = getAllItems($db);
 $all_type_combinations = getAllGearCombinationsByType($all_gear);
 $all_gear_combinations = cartesian_product($all_type_combinations)->asArray();
 $a_gearset = new GearSet(flatten($all_gear_combinations[0]));
 $a_gearset->printSet();
 $a_gearset->printStats();
-print($a_gearset->getSetString());
 $b_gearset = GearSet::parseSetString($db, $a_gearset->getSetString());
 $b_gearset->printStats();
