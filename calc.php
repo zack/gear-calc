@@ -104,22 +104,15 @@ foreach ($all_gear_combinations as $idx => $gear_combination) {
 
     print($text);
 
-    if ($idx % 100 === 0 && $idx > 0) {
+    if ($idx % 1000 === 0 && $idx > 0) {
         $db->commitTransaction();
     }
 
-    if ($idx % 100 === 0) {
+    if ($idx % 1000 === 0) {
         $db->beginTransaction();
     }
 
     $new_set->persistSet($db);
-
-    $total = 50000;
-    if ($idx === $total) {
-        $total_time = time() - $start_time;
-        print("\r{$total} inserts took {$total_time} seconds.\n");
-        die;
-    }
 }
 // $a_gearset = new GearSet(flatten($all_gear_combinations[0]));
 // $a_gearset->printSet();
