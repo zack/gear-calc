@@ -2,320 +2,12 @@
 
 require_once __DIR__ . '/vendor/autoload.php';
 
+require_once 'consts.php';
+require_once 'db.php';
+require_once 'gearset.php';
+require_once 'item.php';
+
 use function BenTools\CartesianProduct\cartesian_product;
-
-const HEAD = 'HEAD';
-const NECK = 'NECK';
-const SHOULDER = 'SHOULDER';
-const BACK = 'BACK';
-const CHEST = 'CHEST';
-const WRIST = 'WRIST';
-const HANDS = 'HANDS';
-const WAIST = 'WAIST';
-const LEGS = 'LEGS';
-const FEET = 'FEET';
-const FINGER = 'FINGER';
-const TRINKET = 'TRINKET';
-const WEAPON = 'WEAPON';
-
-const TYPES = [
-    HEAD,
-    NECK,
-    SHOULDER,
-    BACK,
-    CHEST,
-    WRIST,
-    HANDS,
-    WAIST,
-    LEGS,
-    FEET,
-    FINGER,
-    TRINKET,
-    WEAPON,
-];
-
-const FINGER1 = 'FINGER1';
-const FINGER2 = 'FINGER2';
-const TRINKET1 = 'TRINKET1';
-const TRINKET2 = 'TRINKET2';
-
-const SLOTS = [
-    HEAD,
-    NECK,
-    SHOULDER,
-    BACK,
-    CHEST,
-    WRIST,
-    HANDS,
-    WAIST,
-    LEGS,
-    FEET,
-    FINGER1,
-    FINGER2,
-    TRINKET1,
-    TRINKET2,
-    WEAPON,
-];
-
-const ARM = 'ARM';
-const STA = 'STA';
-const AGI = 'AGI';
-const DEF = 'DEF';
-const DGE = 'DGE';
-const ATP = 'ATP';
-const STR = 'STR';
-const HIT = 'HIT';
-const CRI = 'CRI';
-const HST = 'HST';
-
-const STATS = [
-    ARM,
-    STA,
-    AGI,
-    DEF,
-    DGE,
-    ATP,
-    STR,
-    HIT,
-    CRI,
-    HST,
-];
-
-const TNK = 'TNK';
-const THR = 'THR';
-
-const SET_STATS = [
-    ARM,
-    STA,
-    AGI,
-    DEF,
-    DGE,
-    ATP,
-    STR,
-    HIT,
-    CRI,
-    HST,
-    TNK,
-    THR,
-];
-
-const COUNT_BY_SLOT = [
-    HEAD => 1,
-    NECK => 1,
-    SHOULDER => 1,
-    BACK => 1,
-    CHEST => 1,
-    WRIST => 1,
-    HANDS => 1,
-    WAIST => 1,
-    LEGS => 1,
-    FEET => 1,
-    FINGER => 2,
-    TRINKET => 2,
-    WEAPON => 1,
-];
-
-const STAT_WEIGHT_TANK = [
-    ARM => 0.23,
-    STA => 1.00,
-    AGI => 0.92,
-    DEF => 2.00,
-    DGE => 16.67,
-];
-
-const STAT_WEIGHT_THREAT = [
-    ATP => 0.5,
-    STR => 1,
-    AGI => 0.45,
-    HIT => 6.69,
-    CRI => 8.97,
-    HST => 9.01,
-];
-
-
-class DB {
-    private $db;
-
-    function __construct($filename) {
-        $this->db = new SQLite3($filename);
-    }
-
-    public function getItemsOfType($type) {
-        $statement = $this->db->prepare('SELECT * FROM Item WHERE Slot = :slot;');
-        $statement->bindValue('slot', $type);
-        $result = $statement->execute();
-
-        $arr = [];
-
-        while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
-            $arr[] = new Item($row);
-        }
-
-        return $arr;
-    }
-
-    public function getItemById($id) {
-        $statement = $this->db->prepare('SELECT * FROM Item WHERE Id = :id;');
-        $statement->bindValue('id', $id);
-        $result = $statement->execute();
-
-        while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
-            return new Item($row);
-        }
-    }
-}
-
-class Item {
-
-    private $Id;
-    private $Name;
-    private $ARM;
-    private $STA;
-    private $AGI;
-    private $DEF;
-    private $DGE;
-    private $ATP;
-    private $STR;
-    private $HIT;
-    private $CRI;
-    private $HST;
-    private $SetBonus;
-
-    function __construct($args) {
-        foreach($args as $key => $val) {
-            $this->$key = $val;
-        }
-    }
-
-    public function getName() {
-        return $this->Name;
-    }
-
-    public function getSlot() {
-        return $this->Slot;
-    }
-
-    public function getId() {
-        return $this->Id;
-    }
-
-    public function getStat($stat) {
-        if (in_array($stat, STATS)) {
-            return $this->$stat;
-        } else {
-            throw new Exception("Illegal stat access.");
-        }
-    }
-}
-
-class GearSet {
-
-    private $HEAD;
-    private $NECK;
-    private $SHOULDER;
-    private $BACK;
-    private $CHEST;
-    private $WRIST;
-    private $HANDS;
-    private $WAIST;
-    private $LEGS;
-    private $FEET;
-    private $FINGER1;
-    private $FINGER2;
-    private $TRINKET1;
-    private $TRINKET2;
-    private $WEAPON;
-
-    private $set_stats;
-
-    function __construct($items) {
-        $count = count($items);
-        print("Constructing new set out of {$count} items.\n");
-        foreach($items as $item) {
-            $slot = $item->getSlot();
-
-            if ($slot === FINGER && !isset($this->FINGER1)) {
-                print("Setting FINGER1 to {$item->getName()}\n");
-                $this->FINGER1 = $item;
-            } else if ($slot === FINGER) {
-                print("Setting FINGER2 to {$item->getName()}\n");
-                $this->FINGER2 = $item;
-            } else if ($slot === TRINKET && !isset($this->TRINKET1)) {
-                print("Setting TRINKET1 to {$item->getName()}\n");
-                $this->TRINKET1 = $item;
-            } else if ($slot === TRINKET) {
-                print("Setting TRINKET2 to {$item->getName()}\n");
-                $this->TRINKET2 = $item;
-            } else {
-                print("Setting {$slot} to {$item->getName()}\n");
-                $this->$slot = $item;
-            }
-        }
-
-        $this->set_stats = $this->generateStats($this->set_stats);
-    }
-
-    public static function parseSetString($db, $set_string) {
-        $items = [];
-        $ids = explode(",", $set_string);
-
-        foreach($ids as $id) {
-            $items[] = $db->getItemById($id);
-        };
-
-        return new GearSet($items);
-    }
-
-    private function generateStats() {
-        $stats = array_fill_keys(STATS, 0);
-
-        foreach (SLOTS as $slot) {
-            $item = $this->$slot;
-            foreach(STATS as $stat) {
-                $stats[$stat] += $item->getStat($stat);
-            }
-        }
-
-        $stats[TNK] = $this->calculateSecondaryStats(STAT_WEIGHT_TANK, $stats);
-        $stats[THR] = $this->calculateSecondaryStats(STAT_WEIGHT_THREAT, $stats);
-
-        return $stats;
-    }
-
-    private function calculateSecondaryStats($stat_weights, $stats_arr) {
-        $value = 0;
-
-        foreach($stat_weights as $stat => $value) {
-            $value += $stats_arr[$stat];
-        }
-
-        return $value;
-    }
-
-    function printSet() {
-        foreach(SLOTS as $slot) {
-            $label = rightPad(8, $slot);
-            print("{$label} : {$this->$slot->getName()}\n");
-        }
-    }
-
-    public function printStats() {
-        foreach(SET_STATS as $stat) {
-            print("{$stat} : {$this->set_stats[$stat]}\n");
-        }
-    }
-
-    public function getSetString() {
-        $ids = [];
-
-        foreach(SLOTS as $slot) {
-            $item = $this->$slot;
-            $ids[] = $item->getId();
-        }
-
-        return join($ids, ",");
-    }
-}
 
 function getAllItems($db) {
     $items = [];
@@ -357,9 +49,14 @@ function getGearCombinationsForType($gear) {
     return $result;
 }
 
-function rightPad($len, $string) {
-    $pad = str_repeat(" ", $len-strlen($string));
+function rightPad($len, $string, $spacer = " ") {
+    $pad = str_repeat(" ", $len - strlen($string));
     return "{$string}{$pad}";
+}
+
+function leftPad($len, $string, $spacer = " ") {
+    $pad = str_repeat($spacer, $len - strlen($string));
+    return "{$pad}{$string}";
 }
 
 function flatten(array $array) {
@@ -369,11 +66,64 @@ function flatten(array $array) {
 }
 
 $db = new DB('db.sqlite3');
+
 $all_gear = getAllItems($db);
 $all_type_combinations = getAllGearCombinationsByType($all_gear);
 $all_gear_combinations = cartesian_product($all_type_combinations)->asArray();
-$a_gearset = new GearSet(flatten($all_gear_combinations[0]));
-$a_gearset->printSet();
-$a_gearset->printStats();
-$b_gearset = GearSet::parseSetString($db, $a_gearset->getSetString());
-$b_gearset->printStats();
+
+$count = count($all_gear_combinations);
+$text = "\nPersisting combination {$count} gearsets!\n";
+
+$start_time = time();
+$total_minutes = "";
+$total_seconds_remainder = "";
+
+foreach ($all_gear_combinations as $idx => $gear_combination) {
+    $new_set = new GearSet(flatten($gear_combination));
+
+    if ($idx % 10000 === 0 && $idx > 0) {
+        $seconds_per_thousand = time() - $start_time;
+        $total_seconds = $count / $idx * $seconds_per_thousand;
+        $total_minutes = floor($total_seconds / 60);
+        $total_seconds_remainder = leftPad(2, $total_seconds % 60, "0");
+    }
+
+    $elapsed_minutes = leftPad(2, floor((time() - $start_time) / 60), "0");
+    $elapsed_seconds_remainder = leftPad(2, (time() - $start_time) % 60, "0");
+
+    $percent = number_format($idx/$count*100, 3);
+    $bar = str_repeat("\u{2588}", round($percent / 100 * 50));
+    $space = str_repeat(" ", 50 - round($percent / 100 * 50));
+    $padded_idx = leftPad(strlen("{$count}"), "${idx}", "0");
+    $time = "{$elapsed_minutes}:{$elapsed_seconds_remainder}";
+    if ($total_minutes !== "") {
+        $time .= "/{$total_minutes}:{$total_seconds_remainder}";
+    }
+
+    $text = "\r[{$bar}${space}] | {$padded_idx}/{$count} | ({$percent}%) | {$time} ";
+
+    print($text);
+
+    if ($idx % 100 === 0 && $idx > 0) {
+        $db->commitTransaction();
+    }
+
+    if ($idx % 100 === 0) {
+        $db->beginTransaction();
+    }
+
+    $new_set->persistSet($db);
+
+    $total = 50000;
+    if ($idx === $total) {
+        $total_time = time() - $start_time;
+        print("\r{$total} inserts took {$total_time} seconds.\n");
+        die;
+    }
+}
+// $a_gearset = new GearSet(flatten($all_gear_combinations[0]));
+// $a_gearset->printSet();
+// $a_gearset->printStats();
+// $b_gearset = GearSet::parseSetString($db, $a_gearset->getSetString());
+// $b_gearset->printStats();
+// $a_gearset->persistSet($db);
