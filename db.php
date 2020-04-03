@@ -35,10 +35,9 @@ class DB {
     }
 
     public function persistSet($gearSet) {
-        $this->dropSet($gearSet);
         $set_string = $gearSet->getSetString();
 
-        $statement = "INSERT INTO GearSet ";
+        $statement = "REPLACE INTO GearSet ";
         $statement .= "(SetString," . join(",", SET_STATS) . ")";
         $statement .= " VALUES ";
         $set_values = array_map(function($stat) use ($gearSet) {

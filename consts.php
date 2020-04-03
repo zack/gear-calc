@@ -61,6 +61,7 @@ const DGE = 'DGE';
 const ATP = 'ATP';
 const STR = 'STR';
 const HIT = 'HIT';
+const FRE = 'FRE';
 const CRI = 'CRI';
 const HST = 'HST';
 
@@ -73,6 +74,7 @@ const STATS = [
     ATP,
     STR,
     HIT,
+    FRE,
     CRI,
     HST,
 ];
@@ -91,6 +93,7 @@ const SET_STATS = [
     HIT,
     CRI,
     HST,
+    FRE,
     TNK,
     THR,
 ];

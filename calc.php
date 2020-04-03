@@ -3,9 +3,12 @@
 require_once __DIR__ . '/vendor/autoload.php';
 
 require_once 'consts.php';
+require_once 'util.php';
+
 require_once 'db.php';
 require_once 'gearset.php';
 require_once 'item.php';
+require_once 'progressbar.php';
 
 use function BenTools\CartesianProduct\cartesian_product;
 
@@ -49,16 +52,6 @@ function getGearCombinationsForType($gear) {
     return $result;
 }
 
-function rightPad($len, $string, $spacer = " ") {
-    $pad = str_repeat(" ", $len - strlen($string));
-    return "{$string}{$pad}";
-}
-
-function leftPad($len, $string, $spacer = " ") {
-    $pad = str_repeat($spacer, $len - strlen($string));
-    return "{$pad}{$string}";
-}
-
 function flatten(array $array) {
     $return = array();
     array_walk_recursive($array, function($a) use (&$return) { $return[] = $a; });
@@ -71,38 +64,14 @@ $all_gear = getAllItems($db);
 $all_type_combinations = getAllGearCombinationsByType($all_gear);
 $all_gear_combinations = cartesian_product($all_type_combinations)->asArray();
 
-$count = count($all_gear_combinations);
-$text = "\nPersisting combination {$count} gearsets!\n";
+$total_combinations = count($all_gear_combinations);
+$text = "\nPersisting combination {$total_combinations} gearsets!\n";
 
-$start_time = time();
-$total_minutes = "";
-$total_seconds_remainder = "";
-
+$progressBar = new ProgressBar($total_combinations);
 foreach ($all_gear_combinations as $idx => $gear_combination) {
     $new_set = new GearSet(flatten($gear_combination));
 
-    if ($idx % 10000 === 0 && $idx > 0) {
-        $seconds_per_thousand = time() - $start_time;
-        $total_seconds = $count / $idx * $seconds_per_thousand;
-        $total_minutes = floor($total_seconds / 60);
-        $total_seconds_remainder = leftPad(2, $total_seconds % 60, "0");
-    }
-
-    $elapsed_minutes = leftPad(2, floor((time() - $start_time) / 60), "0");
-    $elapsed_seconds_remainder = leftPad(2, (time() - $start_time) % 60, "0");
-
-    $percent = number_format($idx/$count*100, 3);
-    $bar = str_repeat("\u{2588}", round($percent / 100 * 50));
-    $space = str_repeat(" ", 50 - round($percent / 100 * 50));
-    $padded_idx = leftPad(strlen("{$count}"), "${idx}", "0");
-    $time = "{$elapsed_minutes}:{$elapsed_seconds_remainder}";
-    if ($total_minutes !== "") {
-        $time .= "/{$total_minutes}:{$total_seconds_remainder}";
-    }
-
-    $text = "\r[{$bar}${space}] | {$padded_idx}/{$count} | ({$percent}%) | {$time} ";
-
-    print($text);
+    $progressBar->display($idx);
 
     if ($idx % 1000 === 0 && $idx > 0) {
         $db->commitTransaction();

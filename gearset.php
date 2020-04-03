@@ -69,13 +69,13 @@ class GearSet {
     }
 
     private function calculateSecondaryStats($stat_weights, $stats_arr) {
-        $value = 0;
+        $total_value = 0;
 
-        foreach($stat_weights as $stat => $value) {
-            $value += $stats_arr[$stat];
+        foreach($stat_weights as $stat => $weight) {
+            $total_value += $stats_arr[$stat] * $weight;
         }
 
-        return $value;
+        return $total_value;
     }
 
     function printSet() {
