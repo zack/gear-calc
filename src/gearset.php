@@ -54,11 +54,20 @@ class GearSet {
 
     private function generateStats() {
         $stats = array_fill_keys(STATS, 0);
+        $set_bonuses = [];
 
         foreach (SLOTS as $slot) {
             $item = $this->$slot;
+
             foreach(STATS as $stat) {
                 $stats[$stat] += $item->getStat($stat);
+            }
+
+            $set_bonus = $item->getSetBonus();
+            if (isset($set_bonuses[$set_bonus])) {
+                $set_bonuses[$set_bonus] += 1;
+            } else if ($set_bonus > 0) {
+                $set_bonuses[$set_bonus] = 1;
             }
         }
 
@@ -66,6 +75,9 @@ class GearSet {
         $stats[THR] = $this->calculateSecondaryStats(STAT_WEIGHT_THREAT, $stats);
 
         return $stats;
+    }
+
+    private function getSetBonusStats($set_bonus, $count) {
     }
 
     private function calculateSecondaryStats($stat_weights, $stats_arr) {

@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . '/vendor/autoload.php';
+require_once '../vendor/autoload.php';
 
 require_once 'consts.php';
 require_once 'util.php';
@@ -58,7 +58,7 @@ function flatten(array $array) {
     return $return;
 }
 
-$db = new DB('db.sqlite3');
+$db = new DB('../db.sqlite3');
 
 $all_gear = getAllItems($db);
 $all_type_combinations = getAllGearCombinationsByType($all_gear);

@@ -34,6 +34,10 @@ class Item {
         return $this->Id;
     }
 
+    public function getSetBonus() {
+        return $this->SetBonus;
+    }
+
     public function getStat($stat) {
         if (in_array($stat, STATS)) {
             return $this->$stat;
