@@ -16,9 +16,9 @@ $COLUMNS = [
     "FRE",
 ];
 
-$db = new SQLite3('db.sqlite3');
+$db = new SQLite3('../db.sqlite3');
 
-$file_handle = fopen("gear.csv", "r");
+$file_handle = fopen("../gear.csv", "r");
 
 if ($file_handle) {
     while (($line = fgets($file_handle)) !== false) {

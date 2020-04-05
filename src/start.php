@@ -12,6 +12,8 @@ require_once 'progressbar.php';
 
 use function BenTools\CartesianProduct\cartesian_product;
 
+ini_set('memory_limit', '5G');
+
 function getAllItems($db) {
     $items = [];
     foreach(TYPES as $type) {
@@ -68,24 +70,11 @@ $total_combinations = count($all_gear_combinations);
 $text = "\nPersisting combination {$total_combinations} gearsets!\n";
 
 $progressBar = new ProgressBar($total_combinations);
+
+$db->beginTransaction();
 foreach ($all_gear_combinations as $idx => $gear_combination) {
-    $new_set = new GearSet(flatten($gear_combination));
-
+    $new_set = new GearSet(flatten($gear_combination), $db);
     $progressBar->display($idx);
-
-    if ($idx % 1000 === 0 && $idx > 0) {
-        $db->commitTransaction();
-    }
-
-    if ($idx % 1000 === 0) {
-        $db->beginTransaction();
-    }
-
     $new_set->persistSet($db);
 }
-// $a_gearset = new GearSet(flatten($all_gear_combinations[0]));
-// $a_gearset->printSet();
-// $a_gearset->printStats();
-// $b_gearset = GearSet::parseSetString($db, $a_gearset->getSetString());
-// $b_gearset->printStats();
-// $a_gearset->persistSet($db);
+$db->commitTransaction();

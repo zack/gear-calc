@@ -18,9 +18,13 @@ class GearSet {
     private $TRINKET2;
     private $WEAPON;
 
+    private $db;
+
     private $set_stats;
 
-    function __construct($items) {
+    function __construct($items, $db) {
+        $this->db = $db;
+
         $count = count($items);
         foreach($items as $item) {
             $slot = $item->getSlot();
@@ -49,7 +53,7 @@ class GearSet {
             $items[] = $db->getItemById($id);
         };
 
-        return new GearSet($items);
+        return new GearSet($items, $this->db);
     }
 
     private function generateStats() {
@@ -63,6 +67,7 @@ class GearSet {
                 $stats[$stat] += $item->getStat($stat);
             }
 
+            $item_name = $item->getName();
             $set_bonus = $item->getSetBonus();
             if (isset($set_bonuses[$set_bonus])) {
                 $set_bonuses[$set_bonus] += 1;
@@ -71,13 +76,30 @@ class GearSet {
             }
         }
 
+        $set_bonus_stats = $this->getAllSetBonusStats($set_bonuses);
+        $stats = combineArraysOfNumbersBySummation([$stats, $set_bonus_stats], true);
+
         $stats[TNK] = $this->calculateSecondaryStats(STAT_WEIGHT_TANK, $stats);
         $stats[THR] = $this->calculateSecondaryStats(STAT_WEIGHT_THREAT, $stats);
 
         return $stats;
     }
 
-    private function getSetBonusStats($set_bonus, $count) {
+    private function getAllSetBonusStats($set_bonus_data) {
+        if (empty($set_bonus_data)) {
+            return [];
+        }
+
+        $set_bonus_db_rows = [];
+        forEach($set_bonus_data as $id => $pieceCount) {
+            $rows = $this->db->getSetBonuses($id, $pieceCount);
+            $set_bonus_db_rows = array_merge($set_bonus_db_rows, $rows);
+        }
+
+        $all_set_bonus_stats = combineArraysOfNumbersBySummation($set_bonus_db_rows);
+        unset($all_set_bonus_stats['SetId']);
+        unset($all_set_bonus_stats['PieceCount']);
+        return $all_set_bonus_stats;
     }
 
     private function calculateSecondaryStats($stat_weights, $stats_arr) {

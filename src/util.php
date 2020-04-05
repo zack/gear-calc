@@ -17,3 +17,18 @@ function leftPad($len, $string, $spacer = " ") {
         return $string;
     }
 }
+
+function combineArraysOfNumbersBySummation($arrays, $preserve_zeros = false) {
+    $results = [];
+    foreach ($arrays as $array) {
+        foreach($array as $key => $value) {
+            if (isset($results[$key])) {
+                $results[$key] += $value;
+            } else if ($value > 0 || $preserve_zeros) {
+                $results[$key] = $value;
+            }
+        }
+    }
+
+    return $results;
+}
