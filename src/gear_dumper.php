@@ -16,9 +16,16 @@ $COLUMNS = [
     "FRE",
 ];
 
-$db = new SQLite3('../db.sqlite3');
+if (count($argv) != 3) {
+    print("Usage: php gear_dumper.php database gear\n");
+    die;
+}
 
-$file_handle = fopen("../gear.csv", "r");
+$db_file = $argv[1];
+$gear_file = $argv[2];
+
+$db = new SQLite3($db_file);
+$file_handle = fopen($gear_file, "r");
 
 if ($file_handle) {
     while (($line = fgets($file_handle)) !== false) {
